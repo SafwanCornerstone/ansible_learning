@@ -1,0 +1,42 @@
+---
+- name: Update and upgrade system
+  hosts: all
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Upgrade all packages
+      apt:
+        upgrade: yes
+      register: upgrade_result
+      ignore_errors: yes
+
+    - name: Fix broken packages if needed
+      command: apt-get dist-upgrade -y
+      when: upgrade_result.failed
+
+    - name: Remove unnecessary dependencies
+      apt:
+        autoremove: yes
+
+    - name: Install update-manager-core
+      apt:
+        name: update-manager-core
+        state: present
+
+    - name: Reboot the server
+      reboot:
+        reboot_timeout: 120
+
+    - name: Wait for SSH to be available
+      wait_for:
+        host: "{{ inventory_hostname }}"
+        port: 22
+        delay: 10
+        timeout: 240
+        state: started
+
+    - name: Test connection after reboot
+      ping:

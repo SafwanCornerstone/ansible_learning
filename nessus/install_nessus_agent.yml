@@ -3,9 +3,15 @@
   hosts: all  # Targeting VPN_EU group here
   become: yes
   tasks:
+    - name: Remove old Nessus Agent
+      apt:
+        name: nessus-agent
+        state: absent
+      when: ansible_facts['pkg_mgr'] == 'apt'
+
     - name: Download Nessus Agent package
       get_url:
-        url: "https://edcast-devops-us-prd.s3.us-east-1.amazonaws.com/NessusAgent-10.8.2-ubuntu1604_amd64.deb"
+        url: "https://edcast-devops-us-prd.s3.us-east-1.amazonaws.com/NessusAgent-10.8.2-ubuntu1804_aarch64.deb"
         dest: "/tmp/NessusAgent-10.8.2-ubuntu1604_amd64.deb"
         mode: '0644'
 

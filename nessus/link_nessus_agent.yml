@@ -33,6 +33,8 @@
     - name: Check Nessus Agent status
       command: /opt/nessus_agent/sbin/nessuscli agent status
       register: nessus_status
+      failed_when: "'disconnected' in nessus_status.stdout"
+      ignore_errors: true
 
     - name: Display Nessus Agent status
       debug:

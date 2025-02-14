@@ -27,3 +27,15 @@ ansible_ssh_private_key_file=/home/skhatib/.ssh/id_rsa
 
 [RAS:vars]
 ansible_ssh_private_key_file=/home/skhatib/PEM/cmstage.pem
+
+[US-PREVIEW]
+10.117.166.79
+
+[US-PREVIEW:vars]
+ansible_ssh_private_key_file=/home/skhatib/PEM/cm-west-preview-02.pem
+
+[EU-PREVIEW]
+10.0.7.191
+
+[EU-PREVIEW:vars]
+ansible_ssh_private_key_file=/home/skhatib/PEM/cmprod-eu.pem

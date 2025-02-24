@@ -6,36 +6,48 @@ nessus_groups=SFTP-NON-PROD
 
 [STAGING]
 10.52.150.9
-
 [STAGING:vars]
 ansible_ssh_private_key_file=/home/skhatib/PEM/sftp-staging.pem
 
 [QA]
 10.3.102.239
-
 [QA:vars]
 ansible_ssh_private_key_file=/home/skhatib/PEM/cmstage.pem
 
 [SWAT]
 10.54.135.16
-
 [SWAT:vars]
 ansible_ssh_private_key_file=/home/skhatib/.ssh/id_rsa
 
 [RAS]
 10.113.157.116
-
 [RAS:vars]
 ansible_ssh_private_key_file=/home/skhatib/PEM/cmstage.pem
 
 [US-PREVIEW]
 10.117.166.79
-
 [US-PREVIEW:vars]
 ansible_ssh_private_key_file=/home/skhatib/PEM/cm-west-preview-02.pem
 
 [EU-PREVIEW]
 10.0.7.191
-
 [EU-PREVIEW:vars]
+ansible_ssh_private_key_file=/home/skhatib/PEM/cmprod-eu.pem
+
+[APAC-PRD]
+10.80.168.108
+10.84.169.68
+[APAC-PRD:vars]
+ansible_ssh_private_key_file=/home/skhatib/.ssh/id_rsa
+
+[US-PRD]
+10.125.168.21
+172.31.123.193
+10.0.9.148
+[US-PRD:vars]
+ansible_ssh_private_key_file=/home/skhatib/PEM/cmprod.pem
+
+[EMEA-PRD]
+172.31.99.71
+[EMEA-PRD:vars]
 ansible_ssh_private_key_file=/home/skhatib/PEM/cmprod-eu.pem

@@ -52,7 +52,11 @@ def create_ami_backup(instance_id, region):
     # Wait for AMI to be available
     waiter = ec2_client.get_waiter("image_available")
     try:
-        waiter.wait(ImageIds=[ami_id])
+        waiter.wait(
+            ImageIds=[ami_id],
+            Delay=30,        # Wait 30 seconds between each poll
+            MaxAttempts=40   # Increase the number of attempts (default is 40)
+        )
         print(f"✅ AMI {ami_id} is now available with name: {ami_name}")
     except Exception as e:
         print(f"❌ Error waiting for AMI {ami_id} to become available: {e}")

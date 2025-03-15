@@ -1,6 +1,7 @@
 import boto3
 import sys
 import datetime
+import time
 
 def get_instance_name(ec2_client, instance_id):
     """Retrieve the instance name from tags."""
@@ -47,21 +48,25 @@ def create_ami_backup(instance_id, region):
     )
     
     ami_id = response["ImageId"]
-    print(f"AMI {ami_id} creation started... Waiting for it to become available.")
+    print(f"AMI {ami_id} and name {ami_name} creation started... Waiting for it to become available.")
 
-    # Wait for AMI to be available
-    waiter = ec2_client.get_waiter("image_available")
-    try:
-        waiter.wait(
-            ImageIds=[ami_id],
-            Delay=30,        # Wait 30 seconds between each poll
-            MaxAttempts=40   # Increase the number of attempts (default is 40)
-        )
-        print(f"✅ AMI {ami_id} is now available with name: {ami_name}")
-    except Exception as e:
-        print(f"❌ Error waiting for AMI {ami_id} to become available: {e}")
+    # Custom wait logic instead of waiter
+    max_attempts = 270  # 40 attempts (~20 minutes max)
+    delay_seconds = 10  # Wait 30 seconds between each attempt
 
-    return ami_id
+    for attempt in range(max_attempts):
+        time.sleep(delay_seconds)  # Wait before next check
+        try:
+            image_status = ec2_client.describe_images(ImageIds=[ami_id])["Images"][0]["State"]
+            print(f"Attempt {attempt+1}/{max_attempts}: AMI {ami_id} status: {image_status}")
+            if image_status == "available":
+                print(f"✅ AMI {ami_id} is now available with name: {ami_name}")
+                return ami_id
+        except Exception as e:
+            print(f"⚠️ Error checking AMI status (Attempt {attempt+1}): {e}")
+
+    print(f"❌ AMI {ami_id} did not become available within the timeout period.")
+    return None
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:

@@ -1,0 +1,82 @@
+import paramiko
+import json
+import time
+import subprocess
+import configparser
+
+# Read inventory file
+INVENTORY_FILE = "inventory.ini"
+PLAYBOOK = "mongo_playbook.yml"
+
+def read_inventory():
+    """Read MongoDB hosts from the Ansible inventory file."""
+    config = configparser.ConfigParser(allow_no_value=True)
+    config.read(INVENTORY_FILE)
+
+    hosts = []
+    if "mongo" in config:
+        for host in config["mongo"]:
+            host_ip = config["mongo"][host].split("=")[-1] if "=" in config["mongo"][host] else host
+            hosts.append(host_ip)
+
+    ssh_user = config["all:vars"].get("ansible_user", "ubuntu")
+    ssh_key = config["all:vars"].get("ansible_ssh_private_key_file", "~/.ssh/id_rsa")
+
+    return hosts, ssh_user, ssh_key
+
+def get_mongo_role(host, ssh_user, ssh_key):
+    """SSH into MongoDB node and determine if it's primary or secondary."""
+    try:
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        client.connect(host, username=ssh_user, key_filename=ssh_key)
+
+        command = 'mongo --eval "printjson(rs.status())"'
+        stdin, stdout, stderr = client.exec_command(command)
+        output = stdout.read().decode()
+        client.close()
+
+        # Parse MongoDB replica set status
+        status = json.loads(output.split("\n", 1)[1])  # Convert output to JSON
+        for member in status["members"]:
+            if member["name"].startswith(host):
+                return "PRIMARY" if member["stateStr"] == "PRIMARY" else "SECONDARY"
+
+    except Exception as e:
+        print(f"Error checking MongoDB role on {host}: {e}")
+        return None
+
+def run_ansible_playbook(host):
+    """Run an Ansible playbook on a given MongoDB node."""
+    command = ["ansible-playbook", "-i", INVENTORY_FILE, "-l", host, PLAYBOOK]
+    print(f"Running Ansible on {host}...")
+    result = subprocess.run(command, capture_output=True, text=True)
+    print(result.stdout)
+    if result.stderr:
+        print(result.stderr)
+
+def main():
+    hosts, ssh_user, ssh_key = read_inventory()
+    roles = {}
+
+    # Identify roles of MongoDB nodes
+    for node in hosts:
+        role = get_mongo_role(node, ssh_user, ssh_key)
+        if role:
+            roles[node] = role
+
+    # Sort: Run on secondaries first, then primary
+    secondaries = [node for node, role in roles.items() if role == "SECONDARY"]
+    primary = next((node for node, role in roles.items() if role == "PRIMARY"), None)
+
+    # Run Ansible on secondaries first
+    for secondary in secondaries:
+        run_ansible_playbook(secondary)
+        time.sleep(5)  # Delay for safety
+
+    # Run Ansible on primary last
+    if primary:
+        run_ansible_playbook(primary)
+
+if __name__ == "__main__":
+    main()

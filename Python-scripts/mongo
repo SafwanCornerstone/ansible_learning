@@ -3,6 +3,7 @@ import json
 import time
 import subprocess
 import configparser
+import os
 
 # Read inventory file
 INVENTORY_FILE = "inventory.ini"
@@ -20,16 +21,17 @@ def read_inventory():
             hosts.append(host_ip)
 
     ssh_user = config["all:vars"].get("ansible_user", "ubuntu")
-    ssh_key = config["all:vars"].get("ansible_ssh_private_key_file", "~/.ssh/id_rsa")
 
-    return hosts, ssh_user, ssh_key
+    return hosts, ssh_user
 
-def get_mongo_role(host, ssh_user, ssh_key):
+def get_mongo_role(host, ssh_user):
     """SSH into MongoDB node and determine if it's primary or secondary."""
     try:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect(host, username=ssh_user, key_filename=ssh_key)
+
+        # Use system SSH agent (i.e., your host's SSH key)
+        client.connect(host, username=ssh_user)
 
         command = 'mongo --eval "printjson(rs.status())"'
         stdin, stdout, stderr = client.exec_command(command)
@@ -56,12 +58,12 @@ def run_ansible_playbook(host):
         print(result.stderr)
 
 def main():
-    hosts, ssh_user, ssh_key = read_inventory()
+    hosts, ssh_user = read_inventory()
     roles = {}
 
     # Identify roles of MongoDB nodes
     for node in hosts:
-        role = get_mongo_role(node, ssh_user, ssh_key)
+        role = get_mongo_role(node, ssh_user)
         if role:
             roles[node] = role
 
